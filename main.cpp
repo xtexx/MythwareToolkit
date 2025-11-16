@@ -19,6 +19,8 @@ BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam);
 DWORD WINAPI KeyHookThreadProc(LPVOID lpParameter);
 DWORD WINAPI MouseHookThreadProc(LPVOID lpParameter);
 
+void ShowPsdWnd();
+
 DWORD WINAPI ThreadProc(LPVOID lpParameter);
 BOOL CALLBACK SetWindowFont(HWND hwndChild, LPARAM lParam);
 bool SetupTrayIcon(HWND m_hWnd, HINSTANCE hInstance);
@@ -52,12 +54,13 @@ HWND hBdCst;
 //LONG fullScreenStyle = WS_POPUP | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN, windowingStyle = fullScreenStyle | WS_OVERLAPPEDWINDOW ^ WS_OVERLAPPED;
 NOTIFYICONDATA icon;
 HMENU hMenu;//托盘菜单
+HFONT hFont;
 int width = 528, height = 250, w, h, mwSts;
 bool asking = false, ask = false, closingProcess = false;
 DWORD error = -1;//用于调试
 POINT p, pt;
 HWND BtAbt, BtKmw, TxOut, TxLnk, BtTop, BtCur, BtKbh, BtSnp, BtWnd;
-LPCSTR helpText = "极域工具包 v1.2.4 | 小流汗黄豆 | 交流群828869154（进群请注明极域工具包）\n\
+LPCSTR helpText = "极域工具包 v1.2.5 | 小流汗黄豆 | 交流群828869154（进群请注明极域工具包）\n\
 额外功能：1. 快捷键Alt+C双击杀掉当前进程，Alt+W最小化顶层窗口，Alt+B唤起主窗口\n\
 2. 当鼠标移至屏幕左上角/右上角时，可以选择最小化/关闭焦点窗口（你也可以关闭此功能）\n\
 3. 最小化时隐藏到任务栏托盘，左键双击打开主界面，右键单击调出菜单\n\
@@ -113,7 +116,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) 
 			char szVersion[BUFSIZ] = {};
 			sprintf(szVersion, "系统版本：%u.%u.%u %d-bit\n程序版本：%s %d-bit\n",
 				vi.dwMajorVersion, vi.dwMinorVersion, vi.dwBuildNumber, (si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64 || si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_IA64) ? 64 : 32, 
-				"1.2.4", sizeof(PVOID)*8);
+				"1.2.5", sizeof(PVOID)*8);
 			sOutPut += szVersion;
 			EnableDebugPrivilege();//提权
 			w = GetSystemMetrics(SM_CXSCREEN) - 1;//屏幕宽度（注意比实际可达到的坐标多1）
@@ -152,7 +155,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) 
 			CreateWindow(WC_BUTTON, "解除极域U盘限制", WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON, 392, 66, 112, 30, hwnd, HMENU(1009), hi, NULL);
 			CreateWindow(WC_BUTTON, "重启资源管理器", WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON, 392, 28, 112, 30, hwnd, HMENU(1010), hi, NULL);
 			CreateWindow(WC_BUTTON, "广播窗口化", WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON | WS_DISABLED, 264, 112, 120, 30, hwnd, HMENU(1014), hi, NULL);
-			CreateWindow(WC_BUTTON, "重置助手密码(&P)", WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON, 392, 112, 120, 30, hwnd, HMENU(1015), hi, NULL);
+			CreateWindow(WC_BUTTON, "动态密码计算", WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON, 392, 112, 120, 30, hwnd, HMENU(1015), hi, NULL);
 			CreateWindow(WC_BUTTON, "MeltdownDFC", WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON, 264, 150, 120, 22, hwnd, HMENU(1019), hi, NULL);
 			CreateWindow(WC_BUTTON, "crdisk", WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON, 392, 150, 120, 22, hwnd, HMENU(1020), hi, NULL);
 			
@@ -170,22 +173,23 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) 
 			ti.uFlags = TTF_IDISHWND | TTF_SUBCLASS;
 			ti.hwnd = hwnd;
 			ti.uId = (UINT_PTR)TxOut;
+			ti.lpszText = new char[16];
 			switch(eLevel){
 				case RL_USER:
-					ti.lpszText = "用户权限";
+					strcpy(ti.lpszText, "用户权限");
 					break;
 				case RL_ADMIN:
-					ti.lpszText = "管理员权限";
+					strcpy(ti.lpszText, "管理员权限");
 					break;
 				case RL_SYSTEM:
-					ti.lpszText = "系统权限";
+					strcpy(ti.lpszText, "系统权限");
 					break;
 				default:
-					ti.lpszText = "权限未知";
+					strcpy(ti.lpszText, "权限未知");
 			}
 			SendMessage(hToolTip, TTM_ADDTOOL, 0, (LPARAM)&ti);
+			delete[] ti.lpszText;
 
-			HFONT hFont = NULL;
 			NONCLIENTMETRICS info;
 			info.cbSize = sizeof(NONCLIENTMETRICS);
 			if (SystemParametersInfo (SPI_GETNONCLIENTMETRICS, 0, &info, 0)) {
@@ -692,6 +696,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) 
 					KillAllProcessWithName("prozs.exe", KILL_DEFAULT);
 					KillAllProcessWithName("przs.exe", KILL_DEFAULT); //新版prozs的名字
 					KillAllProcessWithName("jfglzs.exe", KILL_DEFAULT);
+					KillAllProcessWithName("jfglzsn.exe", KILL_DEFAULT);
 					KillAllProcessWithName("jfglzsp.exe", KILL_DEFAULT);//新版jfglzs的名字
 					//停止zmserv服务防止关机
 					SC_HANDLE sc = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT);
@@ -736,23 +741,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) 
 					SendMessage(hwnd, WM_TIMER, WPARAM(2), 0);
 					break;
 				}
-				case 1015: {//TODO: 拆分为新窗口，改为计算临时密码
-					if (MessageBox(hwnd, "你是否要将学生机房管理助手的密码设成12345678？仅7.1-9.98版本有效，该操作不可逆！！(高版本的机房助手可能会蓝屏，慎重）", "警告", MB_YESNO | MB_ICONWARNING) == IDYES) {
-						std::string c = "8a29cc29f5951530ac69f4";//貌似9.9x之后新版是8a29cc29f5951530ac69
-						HKEY retKey;
-						LONG ret = RegOpenKeyEx(HKEY_CURRENT_USER, "Software", 0, KEY_SET_VALUE, &retKey);
-						if (ret != ERROR_SUCCESS) {
-							ge;
-							SetWindowText(TxOut, "设置失败");
-							RegCloseKey(retKey);
-							break;
-						}
-						ret = RegSetValueEx(retKey, "n", 0, REG_SZ, (CONST BYTE*)c.c_str(), c.size() + 1);
-						SetWindowText(TxOut, "设置成功");
-						RegCloseKey(retKey);
-					}
-					break;
-				}
+				case 1015: 
+					ShowPsdWnd();
 				case 1016: {
 					LRESULT check = SendMessage(BtTop, BM_GETCHECK, 0, 0);
 					if (check == BST_CHECKED) {
@@ -1069,10 +1059,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT Message, WPARAM wParam, LPARAM lParam) 
 				}
 			}
 			break;
-		case WM_LBUTTONDOWN:
-			//实现空白处随意拖动
-			SendMessage(hwnd, WM_NCLBUTTONDOWN, HTCAPTION, 0);
-			break;
+		case WM_NCHITTEST: {//实现空白处随意拖动
+			UINT nHitTest = DefWindowProc(hwnd, WM_NCHITTEST, wParam, lParam);
+			if (nHitTest == HTCLIENT && GetAsyncKeyState(MK_LBUTTON) < 0) // 如果鼠标左键按下，GetAsyncKeyState函数的返回值小于0
+				nHitTest = HTCAPTION;
+			return nHitTest;
+		}
 		case WM_SYSCOMMAND:
 			switch (wParam) {
 				case 2: {
@@ -1323,6 +1315,143 @@ LRESULT CALLBACK HookProc(int nCode, WPARAM wParam, LPARAM lParam) {
 	return FALSE;
 }
 
+//----------助手----------
+
+void UpdateTempPsd(HWND hwndDlg)
+{
+	if (!IsWindow(hwndDlg))
+		return;
+	CHAR szComputerName[32] = {};
+	GetDlgItemText(hwndDlg, 1002, szComputerName, 32);
+	if(strlen(szComputerName) == 0)strcpy(szComputerName, "X");
+	SYSTEMTIME date = {};
+	SendDlgItemMessage(hwndDlg, 1001, DTM_GETSYSTEMTIME, 0, LPARAM(&date));
+	//10.0-
+	char szPsd[16] = {};
+	int iPsd = 16 * (date.wYear * 91 + date.wMonth * 13 + date.wDay * 57);
+	itoa(iPsd, szPsd + 1, 10);
+	szPsd[0] = '8';
+	SetDlgItemText(hwndDlg, 1003, szPsd);
+	//10.0-11.0
+	itoa(iPsd + 11, szPsd + 1, 10);
+	SetDlgItemText(hwndDlg, 1004, szPsd);
+	//11.00-11.06
+	iPsd = date.wYear * 789 + date.wMonth * 123 + date.wDay * 456 + 111;
+	itoa(iPsd, szPsd, 10);
+	SetDlgItemText(hwndDlg, 1005, szPsd);
+	//11.06+
+	char lastChar = szComputerName[strlen(szComputerName) - 1];
+	iPsd = date.wMonth * 159 + date.wDay * 357 + lastChar * 258;
+	itoa(iPsd, szPsd, 7);
+	SetDlgItemText(hwndDlg, 1006, szPsd);
+}
+
+INT_PTR CALLBACK PsdWndProc(HWND hWndDlg, UINT Message, WPARAM wParam, LPARAM lParam)
+{
+	switch (Message) {
+		case WM_INITDIALOG: {
+			int yPos = 8;
+			int editWidth = 168;
+			int labelWidth = 64;
+			int spacing = 5;
+
+			CreateWindow(WC_STATIC, "日期:", WS_CHILD | WS_VISIBLE,
+						8, yPos, labelWidth, 20, hWndDlg, NULL, NULL, NULL);
+			CreateWindow(DATETIMEPICK_CLASS, "DateTime", WS_CHILD | WS_VISIBLE | WS_TABSTOP | DTS_LONGDATEFORMAT,
+						8 + labelWidth + spacing, yPos, editWidth, 20,
+						hWndDlg, (HMENU)1001, NULL, NULL);
+			yPos += 32;
+
+			DWORD dwSize = MAX_COMPUTERNAME_LENGTH + 1;
+			char szName[dwSize] = {};
+			GetComputerName(szName, &dwSize);
+
+			CreateWindow(WC_STATIC, "计算机名:", WS_CHILD | WS_VISIBLE,
+						8, yPos, labelWidth, 20, hWndDlg, NULL, NULL, NULL);
+			HWND hwndEdit = CreateWindowEx(WS_EX_CLIENTEDGE, WC_EDIT, szName, WS_CHILD | WS_VISIBLE | WS_TABSTOP,
+										8 + labelWidth + spacing, yPos, editWidth, 20,
+										hWndDlg, (HMENU)1002, NULL, NULL);
+			SendMessage(hwndEdit, EM_SETLIMITTEXT, MAX_COMPUTERNAME_LENGTH, 0);
+			yPos += 40;
+
+			CreateWindow(WC_BUTTON, "计算结果", WS_CHILD | WS_VISIBLE | BS_GROUPBOX,
+						4, yPos, editWidth + labelWidth + 14, 128, hWndDlg, NULL, NULL, NULL);
+			constexpr LPCSTR szTitle[4] = {"10.1-", "10.x", "11.0x", "11.06+"};
+			for (int i = 0; i < 4; i++)
+			{
+				CreateWindow(WC_STATIC, szTitle[i], WS_CHILD | WS_VISIBLE,
+							15, yPos + 25 + (i * 25), labelWidth, 20, hWndDlg, NULL, NULL, NULL);
+				CreateWindowEx(WS_EX_CLIENTEDGE, WC_EDIT, "", WS_CHILD | WS_VISIBLE | ES_READONLY | WS_EX_CLIENTEDGE | WS_TABSTOP,
+							15 + labelWidth + spacing - 8, yPos + 25 + (i * 25), editWidth, 20,
+							hWndDlg, (HMENU)(1003 + i), NULL, NULL);
+			}
+			LPCSTR note = "动态密码计算器-极域工具包\n自9.x版本起，学生机房管理助手新增动态密码，可用于替代普通密码，其每天变化，\
+对于11.06+版本，还与计算机名有关。本计算器用于计算每个版本的临时密码。\n\
+使用方法：确定想要使用密码的日期和计算机名，记录对应版本的密码，在使用时，动态密码的确认按钮在普通密码的确定按钮右侧的空白区域，可以在大概位置多次点击。\n\
+注意：11.06版本有三个不同时间发布的分支版本，第一个适用11.0x版本密码，第二个有新算法，第三个即为上面显示的与计算机名相关的密码；自12.0版本起，临时密码被移除。。";
+			CreateWindow(WC_STATIC, note, WS_CHILD | WS_VISIBLE,
+						8, yPos + 128, editWidth + labelWidth + 12, 256, hWndDlg, NULL, NULL, NULL);
+			EnumChildWindows(hWndDlg, SetWindowFont, LPARAM(hFont));
+			UpdateTempPsd(hWndDlg);
+			return TRUE;
+		}
+		case WM_NOTIFY:
+			if(((LPNMHDR)lParam)->code == DTN_DATETIMECHANGE){
+				UpdateTempPsd(hWndDlg);
+				break;
+			}
+		case WM_NCHITTEST: {
+			UINT nHitTest = DefWindowProc(hWndDlg, WM_NCHITTEST, wParam, lParam);
+			if (nHitTest == HTCLIENT && GetAsyncKeyState(MK_LBUTTON) < 0)
+				nHitTest = HTCAPTION;
+			SetWindowLong(hWndDlg, DWL_MSGRESULT, nHitTest);
+			return nHitTest;
+		}
+		case WM_COMMAND:
+		{
+			switch (LOWORD(wParam))
+			{
+				case 1002:
+					if(HIWORD(wParam) == EN_CHANGE)
+						UpdateTempPsd(hWndDlg);
+					break;
+				case IDOK:
+				case IDCANCEL:
+					EndDialog(hWndDlg, LOWORD(wParam));
+					return TRUE;
+			}
+			break;
+		}
+	}
+	return FALSE;
+}
+
+void ShowPsdWnd()
+{
+	HGLOBAL hgbl = GlobalAlloc(GMEM_ZEROINIT, 1024);
+	if (!hgbl)
+		return;
+	LPDLGTEMPLATE lpdt = (LPDLGTEMPLATE)GlobalLock(hgbl);
+	// Define a dialog box.
+
+	lpdt->style = WS_POPUP | WS_BORDER | WS_SYSMENU | DS_MODALFRAME | WS_CAPTION | DS_CENTER;
+	lpdt->cdit = 0; // Number of controls
+	lpdt->x = 0;
+	lpdt->y = 0;
+	lpdt->cx = 128;
+	lpdt->cy = 220;
+	LPWORD lpw = (LPWORD)(lpdt + 1);
+	*lpw++ = 0; // No menu
+	*lpw++ = 0; // Predefined dialog box class (by default)
+	LPWSTR lpwsz = (LPWSTR)lpw;
+	int nchar = 1 + MultiByteToWideChar(CP_ACP, 0, "密码计算", -1, lpwsz, 50);
+	lpw += nchar;
+	*lpw++ = 0; // No creation data
+
+	GlobalUnlock(hgbl);
+	DialogBoxIndirect(NULL, (LPDLGTEMPLATE)hgbl, hwnd, PsdWndProc);
+	GlobalFree(hgbl);
+}
 //----------界面----------
 
 //https://www.52pojie.cn/thread-542884-1-1.html 有删改 TODO: 尝试FreeModule(libTDMaster.dll)

@@ -14,7 +14,7 @@
 
 注：以下*斜体标注*的内容表示即将到来的功能
 
-**README适应版本：v1.2.4**
+**README适应版本：v1.2.5**
 
 ### 极域控制
 
@@ -30,8 +30,8 @@
 
 ### 学生机房管理助手控制
 
-- 支持关闭6.8-11.06版本的学生机房管理助手（其中某些版本可能不能正常工作，但是依然可以利用快捷键清除漏网之鱼）
-- 将学生机房管理助手密码更改为12345678（7.1-9.9x版本有效，但是不推荐在助手运行期间更改，因为会蓝屏）。**最新版本的密码逻辑有变，所以建议不要更改。**
+- 支持关闭6.8-12.0版本的学生机房管理助手（其中某些版本可能不能正常工作，但是依然可以利用快捷键清除漏网之鱼）
+- 计算9.x版本以上的临时密码，可替代普通密码，适用于无法在机房运行本程序的情况（提前记录好密码供使用）
 - 可以解除cmd（命令提示符）、注册表编辑器、任务管理器、注销、管理控制台、taskkill等程序，还可以解禁几个浏览器的下载限制，解禁Chrome恐龙游戏和Edge冲浪游戏，以及Win7系统自带的一些游戏。
 - 新版本机房助手会禁用Tab键，请在使用“解禁系统程序”功能后注销重登，才能解锁（一般此操作不会触发系统还原，但别忘了重新打开本软件）。
 - 可以重启资源管理器（explorer.exe）
@@ -92,6 +92,15 @@ cd C:\Windows\System32\
 
 vmware、VirtualBox、Virtual PC、**虚拟机**、**电子教室**、ProcView、IceSword、Procmast.exe、**toolkit_32-bits.exe**（有点搞笑，只捉按规范命名的32位程序，随便一改都搞得定）、rstray.exe、PFW.exe、FTCleaner.exe、Wsyscheck.exe、XueTr.exe、prom.exe、ProcessX.exe、pchunter、**Killer.exe**、procmgr.exe、ProcessHacker.exe、killcontrol、PowerTool32.exe、360taskmgr、YtWinAst、KVFWMain.exe、ECQ-PS.exe、SnipeSword、procexp、**MsgFlood.exe**、ProcessOVER、procdeal、**多桌面**、**任务管理**、**进程**、Prayaya、dexpot.exe、vdeskman.exe、mdesk.exe、**virtualdesk**、multideskt.exe、VirDsk.exe、IDesktop.exe、YtMDesk.exe、coon.exe、zmqh.exe、DexpotProPortable.exe、Desktops.exe、wisedesktop.exe、DESKTOP.exe、Vdesktop.exe、MagicDesktop.exe、multidesktop.exe、**weRs0cqa**（这个有特别关照，在蓝屏窗口加载时还会自动杀掉带有这个名字的进程）、RegWX64.exe、QQPCNetFlow.exe、BDMANetLimiter.exe、netmon.exe、360netman.exe、HelloTeacher.exe、EHacker.exe、PowerTool64.exe、zydesk.exe、perfmon.exe、**吾爱破解**、**极域**、prcview.exe、processlasso.exe、netfuke.exe、**去除控制**、**课堂狂欢器**、**课堂工具**、fuckmythware、SpecialSet.exe、JiYuTrainer.exe、skieskiller、WindowsKernelExplorer.exe、msconfig.exe、iu杀毒、**窗口拓印**
 。另外包括任务管理器，会有独特的锁定蓝屏界面。
+
+### 助手临时密码算法（9.x至12.0）
+
+1. 10.0前：首位为8，后面为16 ×(年 × 91 + 月 × 13 + 日 × 57)
+2. 10.0~11.0：在上面一条的基础上+11
+3. 11.0~11.06的首个发布版：年 × 789 + 月 × 123 + 日 × 456 + 111
+4. 11.06的第三个发布版~12.0：（月 × 159 + 日 × 357 + 计算机名的末位字符的ASCII码 × 258）转换为7进制
+
+使用本程序的计算器可直接计算结果。
 
 ### 在线根据明文生成学生机房管理助手密码（7.2版本以上，9.98以下）
 
